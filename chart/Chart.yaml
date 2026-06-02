@@ -3,7 +3,7 @@ apiVersion: v2
 # It MUST differ from the top-level values key of any wrapped subchart (here: `rancher`),
 # otherwise crdgen produces a self-referential `spec.rancher.spec` and CRD generation fails.
 name: rancher-installer
-description: A Krateo blueprint that installs Rancher via the official Helm chart. Each Composition created from this blueprint acts as a self-contained Rancher installer. cert-manager is a prerequisite (see README) and is disabled by default.
+description: A Krateo blueprint that installs Rancher via the official Helm chart. Each Composition created from this blueprint acts as a Rancher installer. cert-manager is a required prerequisite and must be installed separately, beforehand (see README).
 
 # A chart can be either an 'application' or a 'library' chart.
 type: application
@@ -17,14 +17,11 @@ version: CHART_VERSION
 # This is the version of Rancher being deployed. Kept in sync with the rancher subchart below.
 appVersion: "v2.14.2"
 
-# The blueprint is an umbrella chart: it wraps the upstream Rancher chart and, optionally,
-# cert-manager (a Rancher prerequisite). Subchart values are passed under the `rancher`
-# and `cert-manager` keys in values.yaml.
+# The blueprint wraps the upstream Rancher chart. Its values are passed under the `rancher`
+# key in values.yaml. cert-manager is NOT bundled: it is a required prerequisite and must be
+# installed separately before this composition (see README) — it cannot live in the same Helm
+# release as Rancher because Rancher's Issuer needs the cert-manager CRDs to already exist.
 dependencies:
-  - name: cert-manager
-    version: "v1.20.2"
-    repository: "https://charts.jetstack.io"
-    condition: cert-manager.enabled
   - name: rancher
     version: "2.14.2"
     repository: "https://releases.rancher.com/server-charts/stable"

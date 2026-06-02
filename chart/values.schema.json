@@ -86,28 +86,6 @@
           "default": false
         }
       }
-    },
-    "cert-manager": {
-      "type": "object",
-      "title": "cert-manager",
-      "description": "cert-manager must be installed as a separate step before this composition (see README). Bundling it in the same release fails because Rancher's Issuer CRD would not exist at render time. Leave disabled.",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "title": "Install cert-manager (not recommended)",
-          "default": false
-        },
-        "crds": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "title": "Install cert-manager CRDs",
-              "default": true
-            }
-          }
-        }
-      }
     }
   }
 }

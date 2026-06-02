@@ -24,9 +24,8 @@ Krateo continuously reconciles this composition, so transient ordering issues
 NOTE: TLS source is "letsEncrypt" — the hostname must be publicly resolvable and
 reachable on port 80/443 for the ACME HTTP-01 challenge to succeed.
 {{- end }}
-{{- $cm := index .Values "cert-manager" }}
-{{- if not $cm.enabled }}
+{{- if ne $r.ingress.tls.source "secret" }}
 
-NOTE: cert-manager bundling is disabled. Ensure cert-manager is already installed
-in the cluster, unless you terminate TLS externally.
+NOTE: TLS source "{{ $r.ingress.tls.source }}" requires cert-manager, which is a separate
+prerequisite — it must already be installed in the cluster (see the blueprint README).
 {{- end }}

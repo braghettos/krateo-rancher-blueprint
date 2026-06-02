@@ -1,22 +1,11 @@
 # Default values for the Rancher Krateo blueprint.
-# This is an umbrella chart: values for the upstream charts are passed through
-# the `rancher` and `cert-manager` keys.
-
-# -- cert-manager subchart (https://cert-manager.io).
-# Rancher requires cert-manager unless you terminate TLS externally
-# (ingress.tls.source: secret with an externally managed certificate).
+# Values for the upstream Rancher chart are passed through the `rancher` key.
 #
-# IMPORTANT: cert-manager must be installed as a SEPARATE step BEFORE this composition
-# (see README). It cannot be installed in the same Helm release as Rancher, because
-# Rancher renders an `Issuer` (cert-manager.io/v1) whose CRD would not yet exist at
-# render time — Helm fails with "ensure CRDs are installed first". This mirrors the
-# official Rancher install procedure. Hence `enabled` defaults to false.
-cert-manager:
-  # -- Install cert-manager together with Rancher (NOT recommended; see note above).
-  enabled: false
-  # -- Install the cert-manager CRDs as part of the release.
-  crds:
-    enabled: true
+# PREREQUISITE: cert-manager is REQUIRED and must be installed separately, BEFORE this
+# composition (see README), unless you terminate TLS externally with your own certificate
+# (rancher.ingress.tls.source: secret). It is intentionally NOT bundled here: it cannot live
+# in the same Helm release as Rancher, because Rancher renders an `Issuer` (cert-manager.io/v1)
+# whose CRD must already exist at render time. This mirrors the official Rancher procedure.
 
 # -- Rancher subchart (https://rancher.com).
 # See https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/install-upgrade-on-a-kubernetes-cluster

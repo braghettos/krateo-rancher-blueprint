@@ -9,16 +9,18 @@ It follows the upstream procedure documented here:
 
 ## How it works
 
-This blueprint is an **umbrella Helm chart** named `rancher-installer` that wraps the upstream
-Rancher chart as a dependency:
+This blueprint is a Helm chart named `rancher-installer` that wraps the upstream Rancher chart as
+a dependency:
 
-| Dependency     | Version   | Repository                                            |
-| -------------- | --------- | ----------------------------------------------------- |
-| `rancher`      | `2.14.2`  | `https://releases.rancher.com/server-charts/stable`   |
-| `cert-manager` | `v1.20.2` | `https://charts.jetstack.io` (optional, off by default)|
+| Dependency  | Version  | Repository                                          |
+| ----------- | -------- | --------------------------------------------------- |
+| `rancher`   | `2.14.2` | `https://releases.rancher.com/server-charts/stable` |
 
 When a `RancherInstaller` Composition is created, Krateo renders and installs this chart into the
 `cattle-system` namespace.
+
+> **cert-manager is NOT bundled.** It is a **required prerequisite** that must be installed
+> separately, before this composition (see [Prerequisites](#prerequisites)).
 
 > **Chart name vs. Kind.** The chart is intentionally named `rancher-installer` (→ Kind
 > `RancherInstaller`). It must NOT be named `rancher`, because the top-level values key for the
@@ -30,17 +32,18 @@ When a `RancherInstaller` Composition is created, Krateo renders and installs th
 
 - A Kubernetes cluster with an Ingress controller (e.g. ingress-nginx).
 - Krateo `core-provider` installed (tested with `1.0.0`).
-- **cert-manager installed as a separate step, _before_ this composition** (unless you use
-  `rancher.ingress.tls.source: secret` with your own certificate). See below.
+- **cert-manager — REQUIRED — installed separately, _before_ this composition** (see below). The
+  only exception is terminating TLS externally with your own certificate
+  (`rancher.ingress.tls.source: secret`).
 - A DNS record (or `/etc/hosts` entry) for the chosen `rancher.hostname` pointing at your ingress.
 
-### Why cert-manager is a separate prerequisite
+### cert-manager is a required, separately-installed prerequisite
 
 Rancher renders an `Issuer` (`cert-manager.io/v1`) when `ingress.tls.source` is `rancher` or
-`letsEncrypt`. That CRD must already exist in the cluster at render time. It **cannot** be
-installed in the same Helm release as Rancher (Helm fails with *"ensure CRDs are installed
-first"*). This is exactly why the Rancher docs install cert-manager as a distinct step. Install it
-first:
+`letsEncrypt`. That CRD must already exist in the cluster at render time, so cert-manager
+**cannot** be installed in the same Helm release as Rancher (Helm would fail with *"ensure CRDs
+are installed first"*). This is exactly why the official Rancher docs install cert-manager as a
+distinct step — and why this blueprint does **not** bundle it. Install it first:
 
 ```sh
 helm repo add jetstack https://charts.jetstack.io
@@ -49,9 +52,6 @@ helm install cert-manager jetstack/cert-manager \
   --version v1.20.2 --set crds.enabled=true
 kubectl rollout status deploy/cert-manager-webhook -n cert-manager
 ```
-
-The bundled `cert-manager` dependency (`cert-manager.enabled`) is therefore **disabled by
-default**; leave it off and rely on the separate install above.
 
 ## Configuration
 
@@ -65,7 +65,8 @@ Key values (full schema in [`chart/values.schema.json`](chart/values.schema.json
 | `rancher.ingress.tls.source`  | `rancher`            | `rancher` (self-signed via cert-manager) / `letsEncrypt` / `secret`.    |
 | `rancher.letsEncrypt.email`   | `""`                 | Required when `ingress.tls.source: letsEncrypt`.                         |
 | `rancher.privateCA`           | `false`             | Set `true` when the certificate is signed by a private CA.              |
-| `cert-manager.enabled`        | `false`              | Leave off — install cert-manager separately (see above).                |
+
+> cert-manager is **not** configured here — it is a separate prerequisite (see above).
 
 ## How to install
 
@@ -99,9 +100,10 @@ spec:
     ingress:
       tls:
         source: rancher    # needs cert-manager (installed separately, see Prerequisites)
-  cert-manager:
-    enabled: false
 ```
+
+> Make sure cert-manager is already installed (see [Prerequisites](#prerequisites)) before
+> applying this, unless `ingress.tls.source: secret`.
 
 ```sh
 kubectl apply -f rancher-composition.yaml
@@ -136,8 +138,8 @@ helm template rancher ./chart --namespace cattle-system
 
 ## Publishing (CI)
 
-`.github/workflows/release-tag.yaml` packages the chart (bundling its subcharts) and pushes it
-to GitHub Container Registry as an OCI Helm artifact whenever a semver tag is pushed:
+`.github/workflows/release-tag.yaml` packages the chart (bundling the Rancher subchart) and
+pushes it to GitHub Container Registry as an OCI Helm artifact whenever a semver tag is pushed:
 
 ```sh
 git tag 0.1.0
@@ -147,9 +149,8 @@ git push origin 0.1.0
 
 `.github/workflows/lint.yaml` runs `helm lint` + `helm template` on every pull request.
 
-> The published GHCR package starts out **private**. Make it public (Package settings →
-> Change visibility) for credential-free pulls, or keep it private and configure the
-> `credentials` block in `compositiondefinition.yaml`.
+> The published GHCR package is **public**, so it can be pulled without credentials. If you
+> republish it as private, configure the `credentials` block in `compositiondefinition.yaml`.
 
 ## Why `rancher.nameOverride` is required
 
@@ -164,9 +165,10 @@ cannot be imported into the current release"*. Setting `nameOverride` makes Ranc
 
 ## Verified
 
-End-to-end on a kind cluster with `core-provider 1.0.0` + cert-manager `v1.20.2`:
+End-to-end on a kind cluster with `core-provider 1.0.0` and cert-manager `v1.20.2` installed
+separately beforehand:
 
-- `helm lint` / `helm template` / `helm package` (with bundled subcharts).
+- `helm lint` / `helm template` / `helm package`.
 - `CompositionDefinition` reconciles to `Synced=True`, generates the `RancherInstaller` CRD and
   dynamic controller, and reaches `Ready=True`.
 - A `RancherInstaller` Composition (`replicas: 1`, `tls.source: rancher`) reconciles to

@@ -57,8 +57,9 @@ kubectl apply -f compositiondefinition.yaml
 
 This publishes a `Rancher` Composition type (`composition.krateo.io/v0-1-0`, plural `ranchers`).
 
-> Update `spec.chart.url` / `spec.chart.repo` in `compositiondefinition.yaml` to point at the
-> registry where you publish this blueprint chart.
+> `compositiondefinition.yaml` points at the OCI artifact
+> `oci://ghcr.io/braghettos/charts/rancher`. If the GHCR package is private, uncomment the
+> `credentials` block and create the referenced pull-token secret.
 
 ### 2a. Create a Composition (the actual Rancher installer)
 
@@ -110,3 +111,20 @@ helm dependency update ./chart
 # render to verify
 helm template rancher ./chart --namespace cattle-system
 ```
+
+## Publishing (CI)
+
+`.github/workflows/release-tag.yaml` packages the chart (bundling its subcharts) and pushes it
+to GitHub Container Registry as an OCI Helm artifact whenever a semver tag is pushed:
+
+```sh
+git tag 0.1.0
+git push origin 0.1.0
+# -> oci://ghcr.io/braghettos/charts/rancher:0.1.0
+```
+
+`.github/workflows/lint.yaml` runs `helm lint` + `helm template` on every pull request.
+
+> The published GHCR package starts out **private**. Make it public (Package settings →
+> Change visibility) for credential-free pulls, or keep it private and configure the
+> `credentials` block in `compositiondefinition.yaml`.

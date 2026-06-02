@@ -5,8 +5,14 @@ metadata:
   namespace: cattle-system
 spec:
   chart:
-    # Repository / URL where THIS blueprint chart is published.
-    # Replace with your own Krateo chart registry if you host it elsewhere.
-    repo: rancher
-    url: https://charts.krateo.io
-    version: 0.1.0
+    # OCI artifact published by .github/workflows/release-tag.yaml.
+    # The chart name (rancher) is appended to the OCI repository path.
+    url: oci://ghcr.io/braghettos/charts/rancher
+    version: "0.1.0"
+    # If the GHCR package is private, provide pull credentials:
+    # credentials:
+    #   username: braghettos
+    #   passwordRef:
+    #     key: token
+    #     name: ghcr-credentials
+    #     namespace: cattle-system

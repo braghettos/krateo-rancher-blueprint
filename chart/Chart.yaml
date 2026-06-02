@@ -1,6 +1,9 @@
 apiVersion: v2
-name: rancher
-description: A Krateo blueprint that installs Rancher (and, optionally, its required cert-manager dependency) via the official Helm charts. Each Composition created from this blueprint acts as a self-contained Rancher installer.
+# NOTE: the chart name becomes the Composition Kind (rancher-installer -> RancherInstaller).
+# It MUST differ from the top-level values key of any wrapped subchart (here: `rancher`),
+# otherwise crdgen produces a self-referential `spec.rancher.spec` and CRD generation fails.
+name: rancher-installer
+description: A Krateo blueprint that installs Rancher via the official Helm chart. Each Composition created from this blueprint acts as a self-contained Rancher installer. cert-manager is a prerequisite (see README) and is disabled by default.
 
 # A chart can be either an 'application' or a 'library' chart.
 type: application

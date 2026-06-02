@@ -90,12 +90,12 @@
     "cert-manager": {
       "type": "object",
       "title": "cert-manager",
-      "description": "Installs cert-manager alongside Rancher. Disable if cert-manager is already present, or when terminating TLS externally.",
+      "description": "cert-manager must be installed as a separate step before this composition (see README). Bundling it in the same release fails because Rancher's Issuer CRD would not exist at render time. Leave disabled.",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "title": "Install cert-manager",
-          "default": true
+          "title": "Install cert-manager (not recommended)",
+          "default": false
         },
         "crds": {
           "type": "object",

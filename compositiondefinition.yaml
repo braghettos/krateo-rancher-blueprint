@@ -6,8 +6,8 @@ metadata:
 spec:
   chart:
     # OCI artifact published by .github/workflows/release-tag.yaml.
-    # The chart name (rancher) is appended to the OCI repository path.
-    url: oci://ghcr.io/braghettos/charts/rancher
+    # The chart name (rancher-installer) is appended to the OCI repository path.
+    url: oci://ghcr.io/braghettos/charts/rancher-installer
     version: "0.1.0"
     # If the GHCR package is private, provide pull credentials:
     # credentials:

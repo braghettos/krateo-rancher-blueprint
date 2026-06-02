@@ -8,7 +8,9 @@ mapping — no port-forwarder needed.
 Verified with: kind `v0.24`, Helm `v3.19`, `core-provider 1.0.0`, cert-manager `v1.20.2`,
 Rancher `2.14.2`. Result: the Composition reaches `Synced=True`, Rancher's Service is `NodePort`
 `443:30443`, the pod is `1/1 Running`, and the standard Rancher "Welcome to Rancher" page loads
-at `https://localhost:30443` (accept the self-signed certificate warning).
+at `https://localhost:30443` (accept the self-signed certificate warning):
+
+![Rancher "Welcome to Rancher" page served via the kind NodePort at https://localhost:30443](docs/rancher-nodeport-kind.png)
 
 ## 1. Create a kind cluster that maps the NodePort to your host
 

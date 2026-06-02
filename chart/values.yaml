@@ -1,0 +1,57 @@
+# Default values for the Rancher Krateo blueprint.
+# This is an umbrella chart: values for the upstream charts are passed through
+# the `rancher` and `cert-manager` keys.
+
+# -- cert-manager subchart (https://cert-manager.io).
+# Rancher requires cert-manager unless you terminate TLS externally
+# (ingress.tls.source: secret with an externally managed certificate).
+# Disable this if cert-manager is already installed in the cluster.
+cert-manager:
+  # -- Install cert-manager together with Rancher.
+  enabled: true
+  # -- Install the cert-manager CRDs as part of the release.
+  crds:
+    enabled: true
+
+# -- Rancher subchart (https://rancher.com).
+# See https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/install-upgrade-on-a-kubernetes-cluster
+rancher:
+  # -- Fully-qualified DNS name used to reach the Rancher UI/API. Must resolve to your ingress.
+  hostname: rancher.example.com
+  # -- Initial password for the local `admin` user. Change this and store it securely.
+  bootstrapPassword: admin
+  # -- Number of Rancher replicas. Use 3 for HA; set to 1 for single-node clusters (e.g. kind/minikube).
+  replicas: 3
+  ingress:
+    tls:
+      # -- Where the ingress certificate comes from: rancher (self-signed via cert-manager),
+      # letsEncrypt (public certs via cert-manager) or secret (bring your own TLS secret).
+      source: rancher
+  # -- Let's Encrypt settings (only used when ingress.tls.source = letsEncrypt).
+  letsEncrypt:
+    email: ""
+    ingress:
+      class: nginx
+  # -- Set to true when the certificate (rancher/secret source) is signed by a private CA.
+  privateCA: false
+
+# -- Krateo Composable Portal presentation for the composition.
+portal:
+  enabled: true
+  card:
+    icon: fa-solid fa-cow
+  overview:
+    enabled: true
+    text: Rancher installation managed by Krateo.
+  compositionstatus:
+    enabled: true
+  applicationstatus:
+    enabled: false
+  terminal:
+    enabled: false
+  events:
+    enabled: true
+  yamlviewer:
+    enabled: true
+  finops:
+    enabled: false

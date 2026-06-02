@@ -1,0 +1,32 @@
+Rancher has been scheduled for installation by Krateo into namespace "{{ .Release.Namespace }}".
+
+{{- $r := index .Values "rancher" }}
+
+It can take a few minutes for the Rancher deployment to roll out and become Ready.
+Krateo continuously reconciles this composition, so transient ordering issues
+(e.g. cert-manager not yet ready) are retried automatically until it converges.
+
+1. Point your DNS / hosts file so that the hostname resolves to your ingress:
+
+   {{ $r.hostname }}
+
+2. Open the Rancher UI:
+
+   https://{{ $r.hostname }}
+
+3. Log in with the bootstrap password you configured (default user is "admin").
+   You can also retrieve/confirm it with:
+
+   kubectl get secret --namespace {{ .Release.Namespace }} bootstrap-secret -o go-template='{{ "{{" }} .data.bootstrapPassword|base64decode {{ "}}" }}{{ "{{" }} "\n" {{ "}}" }}'
+
+{{- if eq $r.ingress.tls.source "letsEncrypt" }}
+
+NOTE: TLS source is "letsEncrypt" — the hostname must be publicly resolvable and
+reachable on port 80/443 for the ACME HTTP-01 challenge to succeed.
+{{- end }}
+{{- $cm := index .Values "cert-manager" }}
+{{- if not $cm.enabled }}
+
+NOTE: cert-manager bundling is disabled. Ensure cert-manager is already installed
+in the cluster, unless you terminate TLS externally.
+{{- end }}

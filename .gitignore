@@ -1,0 +1,10 @@
+# Downloaded Helm subcharts (pulled via `helm dependency update`)
+chart/charts/
+chart/Chart.lock
+*.tgz
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "required": [
+    "rancher"
+  ],
+  "properties": {
+    "rancher": {
+      "type": "object",
+      "title": "Rancher",
+      "description": "Configuration for the upstream Rancher Helm chart.",
+      "required": [
+        "hostname"
+      ],
+      "properties": {
+        "hostname": {
+          "type": "string",
+          "title": "Hostname",
+          "description": "Fully-qualified DNS name used to reach the Rancher UI/API (must resolve to your ingress).",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+$",
+          "default": "rancher.example.com"
+        },
+        "bootstrapPassword": {
+          "type": "string",
+          "title": "Bootstrap password",
+          "description": "Initial password for the local 'admin' user (recommended at least 12 characters). If left empty, Rancher generates a random one stored in the 'bootstrap-secret' secret.",
+          "default": "admin"
+        },
+        "replicas": {
+          "type": "integer",
+          "title": "Replicas",
+          "description": "Number of Rancher replicas. Use 3 for HA; set to 1 for single-node clusters.",
+          "minimum": 1,
+          "maximum": 9,
+          "default": 3
+        },
+        "ingress": {
+          "type": "object",
+          "title": "Ingress",
+          "properties": {
+            "tls": {
+              "type": "object",
+              "title": "TLS",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "title": "TLS certificate source",
+                  "description": "rancher = self-signed via cert-manager; letsEncrypt = public certs via cert-manager; secret = bring your own TLS secret.",
+                  "enum": [
+                    "rancher",
+                    "letsEncrypt",
+                    "secret"
+                  ],
+                  "default": "rancher"
+                }
+              }
+            }
+          }
+        },
+        "letsEncrypt": {
+          "type": "object",
+          "title": "Let's Encrypt",
+          "description": "Only used when TLS certificate source is letsEncrypt.",
+          "properties": {
+            "email": {
+              "type": "string",
+              "title": "Email",
+              "description": "Contact email used to register the Let's Encrypt account (required when TLS source is letsEncrypt)."
+            },
+            "ingress": {
+              "type": "object",
+              "properties": {
+                "class": {
+                  "type": "string",
+                  "title": "Ingress class",
+                  "default": "nginx"
+                }
+              }
+            }
+          }
+        },
+        "privateCA": {
+          "type": "boolean",
+          "title": "Private CA",
+          "description": "Set to true when the certificate is signed by a private CA.",
+          "default": false
+        }
+      }
+    },
+    "cert-manager": {
+      "type": "object",
+      "title": "cert-manager",
+      "description": "Installs cert-manager alongside Rancher. Disable if cert-manager is already present, or when terminating TLS externally.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Install cert-manager",
+          "default": true
+        },
+        "crds": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Install cert-manager CRDs",
+              "default": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

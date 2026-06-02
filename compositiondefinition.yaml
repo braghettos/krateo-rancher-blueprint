@@ -1,0 +1,12 @@
+apiVersion: core.krateo.io/v1alpha1
+kind: CompositionDefinition
+metadata:
+  name: rancher
+  namespace: cattle-system
+spec:
+  chart:
+    # Repository / URL where THIS blueprint chart is published.
+    # Replace with your own Krateo chart registry if you host it elsewhere.
+    repo: rancher
+    url: https://charts.krateo.io
+    version: 0.1.0

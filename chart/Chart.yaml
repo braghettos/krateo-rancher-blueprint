@@ -1,0 +1,38 @@
+apiVersion: v2
+name: rancher
+description: A Krateo blueprint that installs Rancher (and, optionally, its required cert-manager dependency) via the official Helm charts. Each Composition created from this blueprint acts as a self-contained Rancher installer.
+
+# A chart can be either an 'application' or a 'library' chart.
+type: application
+
+# This is the chart version. This version number should be incremented each time you make changes
+# to the chart and its templates, including the app version.
+# Versions are expected to follow Semantic Versioning (https://semver.org/).
+# NOTE: this drives the Composition CRD version (e.g. 0.1.0 -> v0-1-0).
+version: CHART_VERSION
+
+# This is the version of Rancher being deployed. Kept in sync with the rancher subchart below.
+appVersion: "v2.14.2"
+
+# The blueprint is an umbrella chart: it wraps the upstream Rancher chart and, optionally,
+# cert-manager (a Rancher prerequisite). Subchart values are passed under the `rancher`
+# and `cert-manager` keys in values.yaml.
+dependencies:
+  - name: cert-manager
+    version: "v1.20.2"
+    repository: "https://charts.jetstack.io"
+    condition: cert-manager.enabled
+  - name: rancher
+    version: "2.14.2"
+    repository: "https://releases.rancher.com/server-charts/stable"
+
+home: https://krateo.io
+icon: "https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg"
+keywords:
+  - rancher
+  - cluster-management
+  - installer
+sources:
+  - https://github.com/krateoplatformops-blueprints/rancher
+annotations:
+  krateoSupportedVersion: "2.7.0"

@@ -19,7 +19,11 @@ jobs:
         run: sed -i "s/CHART_VERSION/0.0.0-ci/g" ./chart/Chart.yaml
 
       - name: Build chart dependencies
-        run: helm dependency update ./chart
+        run: |
+          helm dependency update ./chart
+          for tgz in ./chart/charts/*.tgz; do
+            tar -xzf "$tgz" -C ./chart/charts/ && rm -f "$tgz"
+          done
 
       - name: Lint
         run: helm lint ./chart

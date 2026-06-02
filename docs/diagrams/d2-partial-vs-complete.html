@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  * { margin:0; box-sizing:border-box; font-family:-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif; }
+  body { width:1280px; height:720px; background:#0b1020; color:#e8edf7; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:50px; }
+  h1 { font-size:38px; font-weight:700; margin-bottom:8px; letter-spacing:-0.5px; }
+  .sub { color:#8aa0c6; font-size:19px; margin-bottom:40px; }
+  .cols { display:flex; gap:40px; }
+  .col { width:540px; background:#101830; border-radius:18px; padding:28px 30px; border:1px solid #222d4d; }
+  .col h2 { font-size:22px; margin-bottom:4px; }
+  .col .who { font-size:14px; color:#8aa0c6; margin-bottom:18px; }
+  .pill { display:inline-block; font-family:"SF Mono",Menlo,monospace; font-size:14px; padding:6px 12px; border-radius:8px; margin:4px 6px 4px 0; }
+  .have { background:#13243f; color:#9cc2ff; border:1px solid #2b4a7e; }
+  .miss { background:#2c1620; color:#ff8da3; border:1px dashed #7e2b40; }
+  .add { background:#13351f; color:#7be6a8; border:1px solid #2b7e50; }
+  .verdict { margin-top:20px; font-size:18px; font-weight:600; }
+  .bad { color:#ff8da3; } .good { color:#7be6a8; }
+  .left { border-top:4px solid #e0566f; } .right { border-top:4px solid #36c184; }
+</style></head><body>
+  <h1>A chart is only as self-service as its schema is honest</h1>
+  <div class="sub">core-provider builds the Composition CRD from values.schema.json — nothing else</div>
+  <div class="cols">
+    <div class="col left">
+      <h2>Upstream Rancher chart</h2>
+      <div class="who">partial schema · 6 fields</div>
+      <span class="pill have">service</span><span class="pill have">ingress</span><span class="pill have">auditLog</span><span class="pill have">networkExposure</span><span class="pill have">gateway</span><span class="pill have">agentTLSMode</span>
+      <div style="margin-top:14px"></div>
+      <span class="pill miss">hostname ✕</span><span class="pill miss">bootstrapPassword ✕</span><span class="pill miss">replicas ✕</span>
+      <div class="verdict bad">✕ can't set hostname → not installable</div>
+    </div>
+    <div class="col right">
+      <h2>Forked chart (rancher-installer)</h2>
+      <div class="who">complete, crdgen-suitable schema</div>
+      <span class="pill add">hostname</span><span class="pill add">bootstrapPassword</span><span class="pill add">replicas</span><span class="pill add">ingress.tls.source</span><span class="pill add">service.type</span><span class="pill add">service.httpsNodePort</span><span class="pill add">letsEncrypt</span><span class="pill add">privateCA</span>
+      <div class="verdict good">✓ full self-service from the Composition spec</div>
+    </div>
+  </div>
+</body></html>

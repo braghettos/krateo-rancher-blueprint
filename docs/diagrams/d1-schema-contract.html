@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  * { margin:0; box-sizing:border-box; font-family:-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif; }
+  body { width:1280px; height:720px; background:#0b1020; color:#e8edf7; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px; }
+  h1 { font-size:40px; font-weight:700; margin-bottom:8px; letter-spacing:-0.5px; }
+  .sub { color:#8aa0c6; font-size:20px; margin-bottom:54px; }
+  .row { display:flex; align-items:center; gap:0; width:100%; justify-content:center; }
+  .src { background:linear-gradient(135deg,#1b2b54,#16204a); border:2px solid #3b82f6; border-radius:16px; padding:28px 30px; text-align:center; box-shadow:0 10px 40px rgba(59,130,246,.25); }
+  .src .k { font-family:"SF Mono",Menlo,Consolas,monospace; font-size:26px; color:#bcd2ff; }
+  .src .t { font-size:15px; color:#7f97c2; margin-top:6px; }
+  .arrows { display:flex; flex-direction:column; gap:34px; margin:0 36px; }
+  .arrow { color:#3b82f6; font-size:30px; }
+  .consumers { display:flex; flex-direction:column; gap:22px; }
+  .c { display:flex; align-items:center; gap:16px; background:#121a33; border:1px solid #26314f; border-radius:14px; padding:18px 24px; width:380px; }
+  .c .ic { width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px; flex:0 0 auto; }
+  .c b { font-size:20px; } .c span { display:block; color:#8aa0c6; font-size:14px; margin-top:2px; }
+  .g { background:#13351f; color:#5be39a; } .b { background:#13243f; color:#7fb2ff; } .a { background:#3a2a12; color:#ffc46b; }
+  .foot { margin-top:46px; color:#5f7398; font-size:16px; }
+</style></head><body>
+  <h1>The schema is the contract</h1>
+  <div class="sub">In Krateo, one file defines what can be configured — for every consumer</div>
+  <div class="row">
+    <div class="src"><div class="k">values.schema.json</div><div class="t">single source of truth</div></div>
+    <div class="arrows"><div class="arrow">➜</div><div class="arrow">➜</div><div class="arrow">➜</div></div>
+    <div class="consumers">
+      <div class="c"><div class="ic b">▤</div><div><b>CRD &amp; form</b><span>humans self-serve</span></div></div>
+      <div class="c"><div class="ic g">✓</div><div><b>OPA / policy</b><span>governance &amp; validation</span></div></div>
+      <div class="c"><div class="ic a">★</div><div><b>AI agents</b><span>act programmatically</span></div></div>
+    </div>
+  </div>
+  <div class="foot">values.yaml is never read — the schema is the API surface</div>
+</body></html>

@@ -151,20 +151,24 @@ git push origin 0.1.0
 > Change visibility) for credential-free pulls, or keep it private and configure the
 > `credentials` block in `compositiondefinition.yaml`.
 
-## Known platform limitation
+## Why `rancher.nameOverride` is required
 
-Krateo `core-provider`/`chart-inspector` `1.0.0` cannot complete the Rancher install: to
-enumerate RBAC it performs a real Helm install of the chart, which leaves Rancher's
-release-named cluster-admin `ClusterRoleBinding` in the cluster **without Helm ownership
-metadata**. The subsequent install then aborts with *"ClusterRoleBinding … exists and cannot be
-imported into the current release"*. This affects charts that combine cluster-scoped RBAC with
-Helm `lookup` (Rancher does both) and is independent of this blueprint. Track upstream for a
-chart-inspector fix.
+`rancher.nameOverride: server` is set by default and **must not be removed**. While enumerating
+the chart's resources, Krateo's `chart-inspector` creates scaffolding RBAC (ServiceAccount,
+ClusterRole, ClusterRoleBinding) named after the Helm release (`<release>`). Rancher's own
+cluster-admin `ClusterRoleBinding` is named from `rancher.fullname`, which **collapses to the
+bare release name** when the release name contains "rancher" (it does — the composition is named
+`rancher`). The two names collide and the install fails with *"ClusterRoleBinding … exists and
+cannot be imported into the current release"*. Setting `nameOverride` makes Rancher's resources
+`<release>-server-*`, avoiding the collision.
 
 ## Verified
 
+End-to-end on a kind cluster with `core-provider 1.0.0` + cert-manager `v1.20.2`:
+
 - `helm lint` / `helm template` / `helm package` (with bundled subcharts).
-- On a kind cluster with `core-provider 1.0.0`: the `CompositionDefinition` reconciles to
-  `Synced=True`, generates the `RancherInstaller` CRD and dynamic controller, reaches
-  `Ready=True`, and accepts `RancherInstaller` Compositions — up to the platform limitation
-  above.
+- `CompositionDefinition` reconciles to `Synced=True`, generates the `RancherInstaller` CRD and
+  dynamic controller, and reaches `Ready=True`.
+- A `RancherInstaller` Composition (`replicas: 1`, `tls.source: rancher`) reconciles to
+  `Synced=True` / `Ready=True`, the Helm release is recorded, and Rancher's Deployment, Services
+  and Ingress are created — Rancher pod reaches `1/1 Running`.

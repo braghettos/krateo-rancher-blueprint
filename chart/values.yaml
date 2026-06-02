@@ -21,6 +21,13 @@ cert-manager:
 # -- Rancher subchart (https://rancher.com).
 # See https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/install-upgrade-on-a-kubernetes-cluster
 rancher:
+  # -- REQUIRED. Suffixes Rancher's fullname-derived resources (e.g. its cluster-admin
+  # ClusterRoleBinding becomes "<release>-server"). Without this, Rancher's fullname collapses
+  # to the bare Helm release name (because the release name contains "rancher"), which collides
+  # with the release-named scaffolding RBAC that Krateo's chart-inspector creates while
+  # enumerating the chart — making the install fail with "ClusterRoleBinding ... exists and
+  # cannot be imported into the current release". Do not remove.
+  nameOverride: server
   # -- Fully-qualified DNS name used to reach the Rancher UI/API. Must resolve to your ingress.
   hostname: rancher.example.com
   # -- Initial password for the local `admin` user. Change this and store it securely.

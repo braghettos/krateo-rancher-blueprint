@@ -1,30 +1,31 @@
 apiVersion: v2
-# NOTE: the chart name becomes the Composition Kind (rancher-installer -> RancherInstaller).
-# It MUST differ from the top-level values key of any wrapped subchart (here: `rancher`),
-# otherwise crdgen produces a self-referential `spec.rancher.spec` and CRD generation fails.
+# This blueprint is a FORK of the upstream Rancher Helm chart
+# (https://releases.rancher.com/server-charts/stable, rancher 2.14.2).
+#
+# Why a fork instead of a dependency/umbrella wrapper:
+#  - Krateo's core-provider builds the Composition CRD from this chart's values.schema.json
+#    only (it never reads values.yaml). The upstream Rancher chart ships only a *partial*
+#    values.schema.json (6 fields, and using constructs crdgen can't express: if/then,
+#    type unions), so essential fields like `hostname` could not be set via a Composition.
+#    This fork replaces it with a complete, crdgen-suitable schema (see values.schema.json).
+#  - templates/service.yaml is patched to let you force the NodePort number
+#    (service.httpNodePort / service.httpsNodePort).
+#
+# The chart name is `rancher-installer` (not `rancher`) on purpose: the resulting Kind is
+# `RancherInstaller`, and the name avoids colliding with the release-named scaffolding RBAC that
+# chart-inspector creates while enumerating the chart (which would otherwise clash with Rancher's
+# own release-named cluster-admin ClusterRoleBinding).
+#
+# Updating Rancher = re-fork: replace templates/, scripts/, values.yaml from the new upstream
+# version, re-apply the service.yaml NodePort patch, and reconcile values.schema.json.
 name: rancher-installer
-description: A Krateo blueprint that installs Rancher via the official Helm chart. Each Composition created from this blueprint acts as a Rancher installer. cert-manager is a required prerequisite and must be installed separately, beforehand (see README).
-
-# A chart can be either an 'application' or a 'library' chart.
+description: A Krateo blueprint that installs Rancher. It is a fork of the official Rancher Helm chart with a complete, crdgen-suitable values.schema.json so Compositions can configure the install. cert-manager is a required prerequisite and must be installed separately, beforehand (see README).
 type: application
 
-# This is the chart version. This version number should be incremented each time you make changes
-# to the chart and its templates, including the app version.
-# Versions are expected to follow Semantic Versioning (https://semver.org/).
-# NOTE: this drives the Composition CRD version (e.g. 0.1.0 -> v0-1-0).
+# Drives the Composition CRD version (e.g. 0.1.0 -> v0-1-0). Stamped by CI.
 version: CHART_VERSION
-
-# This is the version of Rancher being deployed. Kept in sync with the rancher subchart below.
+# Version of Rancher this fork tracks.
 appVersion: "v2.14.2"
-
-# The blueprint wraps the upstream Rancher chart. Its values are passed under the `rancher`
-# key in values.yaml. cert-manager is NOT bundled: it is a required prerequisite and must be
-# installed separately before this composition (see README) — it cannot live in the same Helm
-# release as Rancher because Rancher's Issuer needs the cert-manager CRDs to already exist.
-dependencies:
-  - name: rancher
-    version: "2.14.2"
-    repository: "https://releases.rancher.com/server-charts/stable"
 
 home: https://krateo.io
 icon: "https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg"
@@ -33,6 +34,7 @@ keywords:
   - cluster-management
   - installer
 sources:
-  - https://github.com/krateoplatformops-blueprints/rancher
+  - https://github.com/braghettos/krateo-rancher-blueprint
+  - https://github.com/rancher/rancher
 annotations:
   krateoSupportedVersion: "2.7.0"

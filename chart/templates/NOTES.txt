@@ -1,31 +1,38 @@
-Rancher has been scheduled for installation by Krateo into namespace "{{ .Release.Namespace }}".
+{{- $action := "installed" -}}
+{{ if .Release.IsUpgrade -}}
+{{ $action = "upgraded" -}}
+{{ end -}}
+{{ if not .Values.hostname }}
+{{- include "tpl.chart.warning" "`.Values.hostname` is unset or empty, Rancher must have a valid hostname."}}
+{{- end -}}
+{{- include "tpl.chart.deprecated" (list .Values.busyboxImage ".Values.busyboxImage" "Use `.Values.auditLog.image.repository` & `.Values.auditLog.image.tag` instead.") -}}
+{{- include "tpl.chart.replace" (list .Values.busyboxImagePullPolicy ".Values.busyboxImagePullPolicy" ".Values.auditLog.image.pullPolicy") -}}
+{{- include "tpl.chart.deprecated" (list .Values.rancherImage ".Values.rancherImage" "Use `.Values.image.repository` & `.Values.image.registry` instead; if you used image name with Registry included you must split them up.") -}}
+{{- include "tpl.chart.replace" (list .Values.rancherImageTag ".Values.rancherImageTag" ".Values.image.tag") -}}
+{{- include "tpl.chart.replace" (list .Values.rancherImagePullPolicy ".Values.rancherImagePullPolicy" ".Values.image.pullPolicy") -}}
+{{- include "rancher.certmanager.notes" . -}}
 
-{{- $r := index .Values "rancher" }}
 
-It can take a few minutes for the Rancher deployment to roll out and become Ready.
-Krateo continuously reconciles this composition, so transient ordering issues
-(e.g. cert-manager not yet ready) are retried automatically until it converges.
+Rancher Server has been {{ $action }}. Rancher may take several minutes to fully initialize.
 
-1. Point your DNS / hosts file so that the hostname resolves to your ingress:
+Please standby while Certificates are being issued, Containers are started and the Ingress rule comes up.
 
-   {{ $r.hostname }}
+Check out our docs at https://rancher.com/docs/
 
-2. Open the Rancher UI:
+## First Time Login
 
-   https://{{ $r.hostname }}
+If you provided your own bootstrap password during installation, browse to https://{{ .Values.hostname }} to get started.
+If this is the first time you installed Rancher, get started by running this command and clicking the URL it generates:
 
-3. Log in with the bootstrap password you configured (default user is "admin").
-   You can also retrieve/confirm it with:
+```
+echo https://{{ .Values.hostname }}/dashboard/?setup=$(kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{ "{{" }}.data.bootstrapPassword|base64decode{{ "}}" }}')
+```
 
-   kubectl get secret --namespace {{ .Release.Namespace }} bootstrap-secret -o go-template='{{ "{{" }} .data.bootstrapPassword|base64decode {{ "}}" }}{{ "{{" }} "\n" {{ "}}" }}'
+To get just the bootstrap password on its own, run:
 
-{{- if eq $r.ingress.tls.source "letsEncrypt" }}
+```
+kubectl get secret --namespace cattle-system bootstrap-secret -o go-template='{{ "{{" }}.data.bootstrapPassword|base64decode{{ "}}" }}{{ "{{" }} "\n" {{ "}}" }}'
+```
 
-NOTE: TLS source is "letsEncrypt" — the hostname must be publicly resolvable and
-reachable on port 80/443 for the ACME HTTP-01 challenge to succeed.
-{{- end }}
-{{- if ne $r.ingress.tls.source "secret" }}
 
-NOTE: TLS source "{{ $r.ingress.tls.source }}" requires cert-manager, which is a separate
-prerequisite — it must already be installed in the cluster (see the blueprint README).
-{{- end }}
+Happy Containering!

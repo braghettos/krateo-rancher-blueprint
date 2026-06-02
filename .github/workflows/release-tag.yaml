@@ -1,7 +1,8 @@
 name: release-tag
 
-# Packages the blueprint chart (bundling its subcharts) and publishes it to the
-# GitHub Container Registry as an OCI Helm artifact on every semver tag.
+# Packages the blueprint chart (a self-contained fork of the Rancher chart — no
+# dependencies) and publishes it to the GitHub Container Registry as an OCI Helm
+# artifact on every semver tag.
 #
 # Pushing tag "0.1.0" publishes:
 #   oci://ghcr.io/<owner>/charts/rancher-installer:0.1.0
@@ -35,15 +36,6 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | \
             helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
-
-      - name: Build chart dependencies
-        run: |
-          helm dependency update ./chart
-          # Unpack subcharts: some Helm versions fail to resolve .tgz dependencies
-          # during `helm package`/`template` (reports them as "missing in charts/").
-          for tgz in ./chart/charts/*.tgz; do
-            tar -xzf "$tgz" -C ./chart/charts/ && rm -f "$tgz"
-          done
 
       - name: Package chart
         run: helm package ./chart --destination .

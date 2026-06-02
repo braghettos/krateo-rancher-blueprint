@@ -1,49 +1,52 @@
 # Krateo Blueprint — Rancher
 
 A [Krateo](https://krateo.io) blueprint that installs [Rancher](https://www.rancher.com/) on a
-Kubernetes cluster using its official Helm chart. Once the `CompositionDefinition` is applied,
-**every `RancherInstaller` Composition you create becomes a self-contained Rancher installer**.
+Kubernetes cluster. Once the `CompositionDefinition` is applied, **every `RancherInstaller`
+Composition you create becomes a Rancher installer**.
 
 It follows the upstream procedure documented here:
 <https://ranchermanager.docs.rancher.com/getting-started/installation-and-upgrade/install-upgrade-on-a-kubernetes-cluster#kubernetes-cluster>
 
 ## How it works
 
-This blueprint is a Helm chart named `rancher-installer` that wraps the upstream Rancher chart as
-a dependency:
+This blueprint is a **fork of the upstream Rancher Helm chart** (rancher `2.14.2`), renamed
+`rancher-installer`, with two changes:
 
-| Dependency  | Version  | Repository                                          |
-| ----------- | -------- | --------------------------------------------------- |
-| `rancher`   | `2.14.2` | `https://releases.rancher.com/server-charts/stable` |
+1. **A complete, crdgen-suitable `values.schema.json`.** Krateo's `core-provider` builds the
+   Composition CRD **only** from the chart's `values.schema.json` (it never reads `values.yaml`).
+   Rancher ships only a *partial* schema (6 fields, using `if/then` and type-unions that crdgen
+   can't express), so essential fields like `hostname` could not be set on a Composition. This
+   fork replaces it with a curated schema that exposes the real install knobs.
+2. **A patched `templates/service.yaml`** that lets you force the NodePort number
+   (`service.httpNodePort` / `service.httpsNodePort`).
 
-When a `RancherInstaller` Composition is created, Krateo renders and installs this chart into the
-`cattle-system` namespace.
+> **Why a fork and not a dependency/umbrella wrapper?** core-provider reads only the root
+> `values.schema.json`; a wrapper's schema would have to duplicate Rancher's anyway, and you
+> still couldn't patch Rancher's Service. Forking keeps everything in one chart. **Updating
+> Rancher = re-fork** (replace `templates/`, `scripts/`, `values.yaml` from the new upstream
+> version, re-apply the `service.yaml` NodePort patch, reconcile `values.schema.json`).
 
-> **cert-manager is NOT bundled.** It is a **required prerequisite** that must be installed
-> separately, before this composition (see [Prerequisites](#prerequisites)).
-
-> **Chart name vs. Kind.** The chart is intentionally named `rancher-installer` (→ Kind
-> `RancherInstaller`). It must NOT be named `rancher`, because the top-level values key for the
-> wrapped subchart is also `rancher`; if the chart name matched, Krateo's `crdgen` would emit a
-> self-referential `spec.rancher.spec` and CRD generation would fail with
-> *"must not be empty for specified object fields"*.
+> **Why the name `rancher-installer` (not `rancher`)?** The Kind becomes `RancherInstaller`, and
+> the name avoids colliding with the release-named scaffolding RBAC that chart-inspector creates
+> while enumerating the chart (which would otherwise clash with Rancher's own release-named
+> cluster-admin ClusterRoleBinding and fail the install).
 
 ## Prerequisites
 
-- A Kubernetes cluster with an Ingress controller (e.g. ingress-nginx).
+- A Kubernetes cluster with an Ingress controller (e.g. ingress-nginx) — unless you expose
+  Rancher via `service.type: NodePort`/`LoadBalancer`.
 - Krateo `core-provider` installed (tested with `1.0.0`).
 - **cert-manager — REQUIRED — installed separately, _before_ this composition** (see below). The
   only exception is terminating TLS externally with your own certificate
-  (`rancher.ingress.tls.source: secret`).
-- A DNS record (or `/etc/hosts` entry) for the chosen `rancher.hostname` pointing at your ingress.
+  (`ingress.tls.source: secret`).
+- A DNS record (or `/etc/hosts` entry) for the chosen `hostname` pointing at your ingress
+  (or node) — for NodePort, point it at a node IP.
 
 ### cert-manager is a required, separately-installed prerequisite
 
 Rancher renders an `Issuer` (`cert-manager.io/v1`) when `ingress.tls.source` is `rancher` or
-`letsEncrypt`. That CRD must already exist in the cluster at render time, so cert-manager
-**cannot** be installed in the same Helm release as Rancher (Helm would fail with *"ensure CRDs
-are installed first"*). This is exactly why the official Rancher docs install cert-manager as a
-distinct step — and why this blueprint does **not** bundle it. Install it first:
+`letsEncrypt`. That CRD must already exist at render time, so cert-manager **cannot** be installed
+in the same Helm release as Rancher. Install it first:
 
 ```sh
 helm repo add jetstack https://charts.jetstack.io
@@ -55,18 +58,21 @@ kubectl rollout status deploy/cert-manager-webhook -n cert-manager
 
 ## Configuration
 
-Key values (full schema in [`chart/values.schema.json`](chart/values.schema.json)):
+Composition `spec` fields are **top-level** (this is the forked Rancher chart). Full schema in
+[`chart/values.schema.json`](chart/values.schema.json). Highlights:
 
-| Value                         | Default              | Description                                                              |
-| ----------------------------- | -------------------- | ------------------------------------------------------------------------ |
-| `rancher.hostname`            | `rancher.example.com`| DNS name to reach the Rancher UI/API. **Required.**                      |
-| `rancher.bootstrapPassword`   | `admin`              | Initial password for the local `admin` user.                            |
-| `rancher.replicas`            | `3`                  | Replica count. Set to `1` for single-node clusters (kind/minikube).     |
-| `rancher.ingress.tls.source`  | `rancher`            | `rancher` (self-signed via cert-manager) / `letsEncrypt` / `secret`.    |
-| `rancher.letsEncrypt.email`   | `""`                 | Required when `ingress.tls.source: letsEncrypt`.                         |
-| `rancher.privateCA`           | `false`             | Set `true` when the certificate is signed by a private CA.              |
-
-> cert-manager is **not** configured here — it is a separate prerequisite (see above).
+| Value                    | Default              | Description                                                          |
+| ------------------------ | -------------------- | ------------------------------------------------------------------- |
+| `hostname`               | `rancher.example.com`| DNS name to reach Rancher. **Required.**                            |
+| `bootstrapPassword`      | _(random)_           | Initial password for the local `admin` user.                       |
+| `replicas`               | `3`                  | Replica count. Use `1` for single-node clusters (kind/minikube).   |
+| `ingress.tls.source`     | `rancher`            | `rancher` / `letsEncrypt` / `secret`.                              |
+| `ingress.ingressClassName`| `""`                | Ingress class (empty = cluster default).                           |
+| `service.type`           | `ClusterIP`          | `ClusterIP` / `NodePort` / `LoadBalancer`.                         |
+| `service.httpsNodePort`  | _(auto)_             | Force the https node port (30000–32767), e.g. for kind.            |
+| `service.httpNodePort`   | _(auto)_             | Force the http node port.                                          |
+| `letsEncrypt.email`      | —                    | Required when `ingress.tls.source: letsEncrypt`.                    |
+| `privateCA`              | `false`             | Certificate signed by a private CA.                                |
 
 ## How to install
 
@@ -78,13 +84,11 @@ kubectl apply -f compositiondefinition.yaml
 ```
 
 This publishes a `RancherInstaller` Composition type (`composition.krateo.io/v0-1-0`, plural
-`rancherinstallers`).
+`rancherinstallers`). `compositiondefinition.yaml` pulls the chart from
+`oci://ghcr.io/braghettos/charts/rancher-installer` (make that GHCR package public, or set the
+`credentials` block).
 
-> `compositiondefinition.yaml` points at the OCI artifact
-> `oci://ghcr.io/braghettos/charts/rancher-installer`. If the GHCR package is private, uncomment
-> the `credentials` block and create the referenced pull-token secret.
-
-### 2a. Create a Composition (the actual Rancher installer)
+### 2a. Create a Composition
 
 ```yaml
 apiVersion: composition.krateo.io/v0-1-0
@@ -93,17 +97,16 @@ metadata:
   name: rancher
   namespace: cattle-system
 spec:
-  rancher:
-    hostname: rancher.my.org
-    bootstrapPassword: "ChangeMe-please"
-    replicas: 1            # 1 for single-node; 3 for HA
-    ingress:
-      tls:
-        source: rancher    # needs cert-manager (installed separately, see Prerequisites)
+  hostname: rancher.my.org
+  bootstrapPassword: "ChangeMe-please"
+  replicas: 1
+  ingress:
+    tls:
+      source: rancher      # needs cert-manager (separate prerequisite)
+  service:
+    type: NodePort         # optional: expose on a node port
+    httpsNodePort: 30443   # optional: force the port number
 ```
-
-> Make sure cert-manager is already installed (see [Prerequisites](#prerequisites)) before
-> applying this, unless `ingress.tls.source: secret`.
 
 ```sh
 kubectl apply -f rancher-composition.yaml
@@ -115,62 +118,35 @@ kubectl apply -f rancher-composition.yaml
 kubectl apply -f customform.yaml
 ```
 
-A "rancher" card appears in the portal; filling the form creates the Composition for you.
-
 ## Accessing Rancher
 
-Once Ready, browse to `https://<rancher.hostname>` and log in as `admin` with the bootstrap
-password. To confirm the password:
+Browse to `https://<hostname>` (or `https://<node>:<httpsNodePort>` for NodePort) and log in as
+`admin`. Retrieve the bootstrap password with:
 
 ```sh
 kubectl get secret -n cattle-system bootstrap-secret \
   -o go-template='{{ "{{" }} .data.bootstrapPassword|base64decode {{ "}}" }}{{ "{{" }} "\n" {{ "}}" }}'
 ```
 
-## Local development
-
-```sh
-# pull the subcharts into chart/charts/
-helm dependency update ./chart
-# render to verify
-helm template rancher ./chart --namespace cattle-system
-```
+See [`quickstart.md`](quickstart.md) for an end-to-end test on kind (NodePort pinned to a host
+port, no port-forwarder).
 
 ## Publishing (CI)
 
-`.github/workflows/release-tag.yaml` packages the chart (bundling the Rancher subchart) and
-pushes it to GitHub Container Registry as an OCI Helm artifact whenever a semver tag is pushed:
-
-```sh
-git tag 0.1.0
-git push origin 0.1.0
-# -> oci://ghcr.io/braghettos/charts/rancher-installer:0.1.0
-```
-
-`.github/workflows/lint.yaml` runs `helm lint` + `helm template` on every pull request.
-
-> The published GHCR package is **public**, so it can be pulled without credentials. If you
-> republish it as private, configure the `credentials` block in `compositiondefinition.yaml`.
-
-## Why `rancher.nameOverride` is required
-
-`rancher.nameOverride: server` is set by default and **must not be removed**. While enumerating
-the chart's resources, Krateo's `chart-inspector` creates scaffolding RBAC (ServiceAccount,
-ClusterRole, ClusterRoleBinding) named after the Helm release (`<release>`). Rancher's own
-cluster-admin `ClusterRoleBinding` is named from `rancher.fullname`, which **collapses to the
-bare release name** when the release name contains "rancher" (it does — the composition is named
-`rancher`). The two names collide and the install fails with *"ClusterRoleBinding … exists and
-cannot be imported into the current release"*. Setting `nameOverride` makes Rancher's resources
-`<release>-server-*`, avoiding the collision.
+`.github/workflows/release-tag.yaml` packages the chart and pushes it to GHCR as an OCI Helm
+artifact on every semver tag (`git tag 0.1.0 && git push origin 0.1.0` →
+`oci://ghcr.io/braghettos/charts/rancher-installer:0.1.0`). `.github/workflows/lint.yaml` runs
+`helm lint` + `helm template` on every PR.
 
 ## Verified
 
-End-to-end on a kind cluster with `core-provider 1.0.0` and cert-manager `v1.20.2` installed
-separately beforehand:
+End-to-end on a kind cluster (`core-provider 1.0.0`, cert-manager `v1.20.2` installed separately):
 
 - `helm lint` / `helm template` / `helm package`.
-- `CompositionDefinition` reconciles to `Synced=True`, generates the `RancherInstaller` CRD and
-  dynamic controller, and reaches `Ready=True`.
-- A `RancherInstaller` Composition (`replicas: 1`, `tls.source: rancher`) reconciles to
-  `Synced=True` / `Ready=True`, the Helm release is recorded, and Rancher's Deployment, Services
-  and Ingress are created — Rancher pod reaches `1/1 Running`.
+- `CompositionDefinition` reconciles to `Synced=True` / `Ready=True`; the CRD exposes the full
+  set of install fields top-level.
+- A `RancherInstaller` Composition (`replicas: 1`, `service.type: NodePort`,
+  `service.httpsNodePort: 30443`) reconciles to `Synced=True`, Rancher's Service is `NodePort`
+  with the **forced** node port `443:30443`, and the Rancher pod reaches `1/1 Running`.
+- With kind started with `extraPortMappings` (`30443:30443`), the Rancher UI is reachable at
+  `https://localhost:30443` directly — no port-forwarder.

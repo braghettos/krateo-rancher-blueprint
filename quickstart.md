@@ -1,0 +1,109 @@
+# Quickstart — test the Rancher blueprint on kind
+
+Install the blueprint on a local [kind](https://kind.sigs.k8s.io/) cluster and reach the Rancher
+UI in your browser, exposing Rancher with a **NodePort whose number is forced from the Composition
+spec** (`service.type: NodePort`, `service.httpsNodePort: 30443`) so it lines up with kind's port
+mapping — no port-forwarder needed.
+
+Verified with: kind `v0.24`, Helm `v3.19`, `core-provider 1.0.0`, cert-manager `v1.20.2`,
+Rancher `2.14.2`. Result: the Composition reaches `Synced=True`, Rancher's Service is `NodePort`
+`443:30443`, the pod is `1/1 Running`, and the standard Rancher "Welcome to Rancher" page loads
+at `https://localhost:30443` (accept the self-signed certificate warning).
+
+## 1. Create a kind cluster that maps the NodePort to your host
+
+```sh
+cat > kind-rancher.yaml <<'EOF'
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30443   # must match service.httpsNodePort below
+        hostPort: 30443        # https://localhost:30443 on your machine
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+EOF
+
+kind create cluster --name rancher --config kind-rancher.yaml
+```
+
+## 2. Install the prerequisites
+
+```sh
+helm repo add krateo https://charts.krateo.io
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+
+# Krateo core-provider (renders Compositions)
+helm upgrade --install core-provider krateo/core-provider --version 1.0.0 -n krateo-system --create-namespace
+
+# cert-manager — REQUIRED, installed separately (Rancher's Issuer CRD must pre-exist)
+helm upgrade --install cert-manager jetstack/cert-manager --version v1.20.2 \
+  -n cert-manager --create-namespace --set crds.enabled=true
+kubectl rollout status deploy/cert-manager-webhook -n cert-manager
+```
+
+## 3. Register the blueprint
+
+```sh
+kubectl create namespace cattle-system
+kubectl apply -f compositiondefinition.yaml
+kubectl wait compositiondefinition/rancher -n cattle-system --for=condition=Ready --timeout=180s
+```
+
+> `compositiondefinition.yaml` pulls the chart from `oci://ghcr.io/braghettos/charts/rancher-installer`.
+> That GHCR package must be **public** (or configure the `credentials` block in the file).
+
+## 4. Create the Composition — NodePort pinned to 30443
+
+```sh
+cat > rancher-composition.yaml <<'EOF'
+apiVersion: composition.krateo.io/v0-1-0
+kind: RancherInstaller
+metadata:
+  name: rancher
+  namespace: cattle-system
+spec:
+  hostname: rancher.kind.local
+  bootstrapPassword: "admin-kind-test"   # change me
+  replicas: 1
+  ingress:
+    tls:
+      source: rancher
+  service:
+    type: NodePort
+    httpsNodePort: 30443                  # forced node port == kind extraPortMapping
+EOF
+
+kubectl apply -f rancher-composition.yaml
+kubectl wait rancherinstaller/rancher -n cattle-system --for=condition=Ready --timeout=600s
+```
+
+Check the Service got the forced node port:
+
+```sh
+kubectl get svc -n cattle-system -o wide | grep rancher-installer
+# ... NodePort ... 80:31233/TCP,443:30443/TCP ...
+```
+
+## 5. Open Rancher
+
+```sh
+open https://localhost:30443       # macOS; xdg-open on Linux
+```
+
+Flow: `https://localhost:30443` → kind port mapping → node:30443 → Rancher's NodePort → Rancher.
+Accept the self-signed certificate warning (with `ingress.tls.source: rancher`). On the
+"Welcome to Rancher" page enter the `bootstrapPassword`. Confirm it any time with:
+
+```sh
+kubectl get secret -n cattle-system bootstrap-secret \
+  -o go-template='{{ "{{" }} .data.bootstrapPassword|base64decode {{ "}}" }}{{ "{{" }} "\n" {{ "}}" }}'
+```
+
+## 6. Clean up
+
+```sh
+kind delete cluster --name rancher
+```

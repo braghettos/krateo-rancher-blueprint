@@ -1,89 +1,216 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
   "type": "object",
+  "title": "Rancher installer",
+  "description": "Configuration for installing Rancher (forked rancher chart). Only fields declared here can be set on a Composition; everything else uses the chart defaults in values.yaml.",
   "required": [
-    "rancher"
+    "hostname"
   ],
   "properties": {
-    "rancher": {
+    "hostname": {
+      "type": "string",
+      "title": "Hostname",
+      "description": "Fully-qualified DNS name used to reach the Rancher UI/API (must resolve to your ingress).",
+      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+$",
+      "default": "rancher.example.com"
+    },
+    "bootstrapPassword": {
+      "type": "string",
+      "title": "Bootstrap password",
+      "description": "Initial password for the local 'admin' user. If empty, Rancher generates a random one stored in the 'bootstrap-secret' secret."
+    },
+    "replicas": {
+      "type": "integer",
+      "title": "Replicas",
+      "description": "Number of Rancher server replicas. Use 3 for HA; set to 1 for single-node clusters (kind/minikube).",
+      "minimum": 1,
+      "maximum": 9,
+      "default": 3
+    },
+    "ingress": {
       "type": "object",
-      "title": "Rancher",
-      "description": "Configuration for the upstream Rancher Helm chart.",
-      "required": [
-        "hostname"
-      ],
+      "title": "Ingress",
       "properties": {
-        "hostname": {
-          "type": "string",
-          "title": "Hostname",
-          "description": "Fully-qualified DNS name used to reach the Rancher UI/API (must resolve to your ingress).",
-          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+$",
-          "default": "rancher.example.com"
+        "enabled": {
+          "type": "boolean",
+          "title": "Create Ingress",
+          "default": true
         },
-        "bootstrapPassword": {
+        "ingressClassName": {
           "type": "string",
-          "title": "Bootstrap password",
-          "description": "Initial password for the local 'admin' user (recommended at least 12 characters). If left empty, Rancher generates a random one stored in the 'bootstrap-secret' secret.",
-          "default": "admin"
+          "title": "Ingress class name",
+          "description": "IngressClass to use. Leave empty to use the cluster default."
         },
-        "replicas": {
+        "servicePort": {
           "type": "integer",
-          "title": "Replicas",
-          "description": "Number of Rancher replicas. Use 3 for HA; set to 1 for single-node clusters.",
-          "minimum": 1,
-          "maximum": 9,
-          "default": 3
+          "title": "Ingress backend port",
+          "description": "Backend service port the ingress targets (80 or 443).",
+          "enum": [
+            80,
+            443
+          ],
+          "default": 80
+        },
+        "tls": {
+          "type": "object",
+          "title": "TLS",
+          "properties": {
+            "source": {
+              "type": "string",
+              "title": "TLS certificate source",
+              "description": "rancher = self-signed via cert-manager; letsEncrypt = public certs via cert-manager; secret = bring your own TLS secret.",
+              "enum": [
+                "rancher",
+                "letsEncrypt",
+                "secret"
+              ],
+              "default": "rancher"
+            },
+            "secretName": {
+              "type": "string",
+              "title": "TLS secret name",
+              "description": "Name of the TLS secret when source is 'secret'.",
+              "default": "tls-rancher-ingress"
+            }
+          }
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "title": "Service",
+      "description": "How the Rancher server Service is exposed.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "Service type",
+          "description": "ClusterIP (default; reach Rancher through the Ingress), NodePort or LoadBalancer.",
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer"
+          ],
+          "default": "ClusterIP"
+        },
+        "httpsNodePort": {
+          "type": "integer",
+          "title": "HTTPS NodePort",
+          "description": "Force the https (443) node port number (only with service.type NodePort/LoadBalancer). Useful on kind to line up with extraPortMappings.",
+          "minimum": 30000,
+          "maximum": 32767
+        },
+        "httpNodePort": {
+          "type": "integer",
+          "title": "HTTP NodePort",
+          "description": "Force the http (80) node port number (only with service.type NodePort/LoadBalancer).",
+          "minimum": 30000,
+          "maximum": 32767
+        },
+        "disableHTTP": {
+          "type": "boolean",
+          "title": "Disable HTTP port",
+          "description": "Disable the http (80) port of the Rancher service. Requires ingress.servicePort=443.",
+          "default": false
+        }
+      }
+    },
+    "letsEncrypt": {
+      "type": "object",
+      "title": "Let's Encrypt",
+      "description": "Only used when ingress.tls.source is letsEncrypt.",
+      "properties": {
+        "email": {
+          "type": "string",
+          "title": "Email",
+          "description": "Contact email used to register the Let's Encrypt account."
+        },
+        "environment": {
+          "type": "string",
+          "title": "Environment",
+          "description": "Use 'staging' until your config is correct (production limits registrations).",
+          "enum": [
+            "production",
+            "staging"
+          ],
+          "default": "production"
         },
         "ingress": {
           "type": "object",
-          "title": "Ingress",
           "properties": {
-            "tls": {
-              "type": "object",
-              "title": "TLS",
-              "properties": {
-                "source": {
-                  "type": "string",
-                  "title": "TLS certificate source",
-                  "description": "rancher = self-signed via cert-manager; letsEncrypt = public certs via cert-manager; secret = bring your own TLS secret.",
-                  "enum": [
-                    "rancher",
-                    "letsEncrypt",
-                    "secret"
-                  ],
-                  "default": "rancher"
-                }
-              }
-            }
-          }
-        },
-        "letsEncrypt": {
-          "type": "object",
-          "title": "Let's Encrypt",
-          "description": "Only used when TLS certificate source is letsEncrypt.",
-          "properties": {
-            "email": {
+            "class": {
               "type": "string",
-              "title": "Email",
-              "description": "Contact email used to register the Let's Encrypt account (required when TLS source is letsEncrypt)."
-            },
-            "ingress": {
-              "type": "object",
-              "properties": {
-                "class": {
-                  "type": "string",
-                  "title": "Ingress class",
-                  "default": "nginx"
-                }
-              }
+              "title": "Ingress class",
+              "enum": [
+                "traefik",
+                "nginx",
+                ""
+              ]
             }
           }
-        },
-        "privateCA": {
+        }
+      }
+    },
+    "privateCA": {
+      "type": "boolean",
+      "title": "Private CA",
+      "description": "Set true when the certificate is signed by a private CA (provide the 'tls-ca' secret in cattle-system).",
+      "default": false
+    },
+    "additionalTrustedCAs": {
+      "type": "boolean",
+      "title": "Additional trusted CAs",
+      "description": "Enable to add your own CA certs via a 'tls-ca-additional' secret.",
+      "default": false
+    },
+    "antiAffinity": {
+      "type": "string",
+      "title": "Anti-affinity",
+      "description": "Pod anti-affinity for Rancher replicas.",
+      "enum": [
+        "preferred",
+        "required"
+      ],
+      "default": "preferred"
+    },
+    "networkExposure": {
+      "type": "object",
+      "title": "Network exposure",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "Exposure type",
+          "enum": [
+            "ingress",
+            "gateway",
+            "none"
+          ],
+          "default": "ingress"
+        }
+      }
+    },
+    "auditLog": {
+      "type": "object",
+      "title": "Audit log",
+      "properties": {
+        "enabled": {
           "type": "boolean",
-          "title": "Private CA",
-          "description": "Set to true when the certificate is signed by a private CA.",
           "default": false
+        },
+        "level": {
+          "type": "integer",
+          "title": "Audit log level",
+          "description": "0 disables; 3 is most verbose.",
+          "minimum": 0,
+          "maximum": 3,
+          "default": 0
+        },
+        "destination": {
+          "type": "string",
+          "enum": [
+            "sidecar",
+            "hostPath"
+          ],
+          "default": "sidecar"
         }
       }
     }

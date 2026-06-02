@@ -46,14 +46,32 @@ kubectl rollout status deploy/cert-manager-webhook -n cert-manager
 
 ## 3. Register the blueprint
 
+The `CompositionDefinition` pulls the blueprint straight from the public GHCR OCI artifact
+`oci://ghcr.io/braghettos/charts/rancher-installer:0.1.0` (no credentials needed):
+
 ```sh
 kubectl create namespace cattle-system
-kubectl apply -f compositiondefinition.yaml
+
+kubectl apply -f - <<'EOF'
+apiVersion: core.krateo.io/v1alpha1
+kind: CompositionDefinition
+metadata:
+  name: rancher
+  namespace: cattle-system
+spec:
+  chart:
+    url: oci://ghcr.io/braghettos/charts/rancher-installer
+    version: "0.1.0"
+EOF
+
 kubectl wait compositiondefinition/rancher -n cattle-system --for=condition=Ready --timeout=180s
 ```
 
-> `compositiondefinition.yaml` pulls the chart from `oci://ghcr.io/braghettos/charts/rancher-installer`.
-> That GHCR package must be **public** (or configure the `credentials` block in the file).
+This publishes a `RancherInstaller` Composition type (`composition.krateo.io/v0-1-0`, plural
+`rancherinstallers`).
+
+> If you republish the GHCR package as private, add a `spec.chart.credentials` block referencing a
+> pull-token secret (see `compositiondefinition.yaml` in the repo for the shape).
 
 ## 4. Create the Composition — NodePort pinned to 30443
 

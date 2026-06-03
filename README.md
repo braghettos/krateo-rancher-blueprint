@@ -1,5 +1,12 @@
 # Krateo Blueprint — Rancher
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
+    <img alt="Krateo ❤ Rancher" src="docs/hero-light.png" width="820">
+  </picture>
+</p>
+
 A [Krateo](https://krateo.io) blueprint that installs [Rancher](https://www.rancher.com/) on a
 Kubernetes cluster. Once the `CompositionDefinition` is applied, **every `RancherInstaller`
 Composition you create becomes a Rancher installer**.

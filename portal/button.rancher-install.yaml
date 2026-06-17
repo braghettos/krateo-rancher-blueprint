@@ -15,6 +15,6 @@ spec:
       navigate:
         - id: install
           type: navigate
-          path: /marketplace/rancher/new
+          path: /marketplace/cattle-system/rancher/new
   resourcesRefs:
     items: []

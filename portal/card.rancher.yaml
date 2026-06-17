@@ -6,7 +6,6 @@ metadata:
   namespace: cattle-system
   labels:
     krateo.io/portal-page: blueprints
-    krateo.io/category: Management
 spec:
   apiRef:
     name: rancher-card-data
@@ -19,16 +18,16 @@ spec:
       name: fa-cow
       color: grey
     tags:
-      - Management
+      - cluster-management
+      - kubernetes
+      - rancher
     extra: ''
     items: []
     footer:
       - resourceRefId: rancher-install
   widgetDataTemplate:
     - forPath: extra
-      expression: '${ "Ready: " + .ready }'
-    - forPath: tags
-      expression: ${ ["Management", .version] }
+      expression: '${ "Ready: " + .ready + (if .version != "—" then " · v" + .version else "" end) }'
     - forPath: icon
       expression: '${ { name: "fa-cow", color: (if .ready == "True" then "green" elif .ready == "False" then "orange" else "grey" end) } }'
   resourcesRefs:

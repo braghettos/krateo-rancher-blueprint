@@ -28,13 +28,17 @@ version: CHART_VERSION
 appVersion: "v2.14.2"
 
 home: https://krateo.io
-icon: "https://github.com/krateoplatformops/krateo/blob/main/docs/media/logo.svg"
+icon: "https://raw.githubusercontent.com/krateoplatformops/krateo/main/docs/media/logo.svg"
 keywords:
   - rancher
   - cluster-management
   - installer
+  - kubernetes
 sources:
   - https://github.com/braghettos/krateo-rancher-blueprint
   - https://github.com/rancher/rancher
 annotations:
   krateoSupportedVersion: "2.7.0"
+  krateo.io/category: application
+  krateo.io/maturity: stable
+  krateo.io/display-name: Rancher Installer

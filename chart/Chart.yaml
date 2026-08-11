@@ -35,7 +35,7 @@ keywords:
   - installer
   - kubernetes
 sources:
-  - https://github.com/braghettos/krateo-rancher-blueprint
+  - https://github.com/krateo-blueprints/krateo-rancher-blueprint
   - https://github.com/rancher/rancher
 annotations:
   krateoSupportedVersion: "2.7.0"

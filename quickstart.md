@@ -49,7 +49,7 @@ kubectl rollout status deploy/cert-manager-webhook -n cert-manager
 ## 3. Register the blueprint
 
 The `CompositionDefinition` pulls the blueprint straight from the public GHCR OCI artifact
-`oci://ghcr.io/braghettos/charts/rancher-installer:0.1.0` (no credentials needed):
+`oci://ghcr.io/krateo-blueprints/charts/rancher-installer:0.1.0` (no credentials needed):
 
 ```sh
 kubectl create namespace cattle-system
@@ -62,7 +62,7 @@ metadata:
   namespace: cattle-system
 spec:
   chart:
-    url: oci://ghcr.io/braghettos/charts/rancher-installer
+    url: oci://ghcr.io/krateo-blueprints/charts/rancher-installer
     version: "0.1.0"
 EOF
 

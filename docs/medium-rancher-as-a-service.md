@@ -2,7 +2,7 @@
 
 *What forking a Helm chart taught me about what "self-service" actually requires*
 
-![The schema is the contract](https://raw.githubusercontent.com/braghettos/krateo-rancher-blueprint/main/docs/d1-schema-contract.png)
+![The schema is the contract](https://raw.githubusercontent.com/krateo-blueprints/krateo-rancher-blueprint/main/docs/d1-schema-contract.png)
 
 I wanted something simple: install Rancher from our platform as a single self-service action. Pick a hostname, click once, get a working Rancher. No Helm to learn, no values.yaml to copy, no RBAC to wire by hand.
 
@@ -31,7 +31,7 @@ unknown field "spec.bootstrapPassword", unknown field "spec.replicas"
 
 The generated CRD had exactly six fields: `agentTLSMode`, `auditLog`, `service`, `networkExposure`, `ingress`, `gateway`. No `hostname`. And you cannot install Rancher without a hostname.
 
-![Partial vs complete schema](https://raw.githubusercontent.com/braghettos/krateo-rancher-blueprint/main/docs/d2-partial-vs-complete.png)
+![Partial vs complete schema](https://raw.githubusercontent.com/krateo-blueprints/krateo-rancher-blueprint/main/docs/d2-partial-vs-complete.png)
 
 This isn't a bug in Krateo, and it isn't really a bug in Rancher either. Rancher's `values.schema.json` is a *partial* schema — it validates a handful of enums and one conditional. It was written to catch a few mistakes, not to describe the chart. The full surface of Rancher's configuration lives in `values.yaml`, which the platform deliberately doesn't read.
 
@@ -86,7 +86,7 @@ Naming the chart `rancher-installer` makes Rancher's resources `<release>-ranche
 
 ## The payoff
 
-![Rancher-as-a-Service flow](https://raw.githubusercontent.com/braghettos/krateo-rancher-blueprint/main/docs/d3-flow.png)
+![Rancher-as-a-Service flow](https://raw.githubusercontent.com/krateo-blueprints/krateo-rancher-blueprint/main/docs/d3-flow.png)
 
 On a throwaway kind cluster — `core-provider`, cert-manager installed separately, and the blueprint pulled from a public OCI artifact — the loop is exactly what I wanted:
 
@@ -97,7 +97,7 @@ kubectl apply -f rancher-composition.yaml     # the spec above
 
 The composition reconciles to `Ready`, Rancher comes up `1/1 Running`, its Service is `NodePort` with the forced `443:30443`, and with kind mapping `30443` to the host the UI answers directly at `https://localhost:30443` — no port-forward.
 
-![Rancher served via the kind NodePort](https://raw.githubusercontent.com/braghettos/krateo-rancher-blueprint/main/docs/rancher-nodeport-kind.png)
+![Rancher served via the kind NodePort](https://raw.githubusercontent.com/krateo-blueprints/krateo-rancher-blueprint/main/docs/rancher-nodeport-kind.png)
 
 And the same approach generalizes: any tool, once it carries an honest schema, becomes a service anyone can request with a click — and that an agent can request programmatically against the same contract.
 
@@ -109,4 +109,4 @@ How many of the charts you run every day could describe themselves to something 
 
 ---
 
-*The blueprint is open source: [github.com/braghettos/krateo-rancher-blueprint](https://github.com/braghettos/krateo-rancher-blueprint) — including a [quickstart](https://github.com/braghettos/krateo-rancher-blueprint/blob/main/quickstart.md) you can run on kind.*
+*The blueprint is open source: [github.com/krateo-blueprints/krateo-rancher-blueprint](https://github.com/krateo-blueprints/krateo-rancher-blueprint) — including a [quickstart](https://github.com/krateo-blueprints/krateo-rancher-blueprint/blob/main/quickstart.md) you can run on kind.*

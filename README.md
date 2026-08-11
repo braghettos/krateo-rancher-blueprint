@@ -92,7 +92,7 @@ kubectl apply -f compositiondefinition.yaml
 
 This publishes a `RancherInstaller` Composition type (`composition.krateo.io/v0-1-0`, plural
 `rancherinstallers`). `compositiondefinition.yaml` pulls the chart from
-`oci://ghcr.io/braghettos/charts/rancher-installer` (make that GHCR package public, or set the
+`oci://ghcr.io/krateo-blueprints/charts/rancher-installer` (make that GHCR package public, or set the
 `credentials` block).
 
 ### 2a. Create a Composition
@@ -142,7 +142,7 @@ port, no port-forwarder).
 
 `.github/workflows/release-tag.yaml` packages the chart and pushes it to GHCR as an OCI Helm
 artifact on every semver tag (`git tag 0.1.0 && git push origin 0.1.0` →
-`oci://ghcr.io/braghettos/charts/rancher-installer:0.1.0`). `.github/workflows/lint.yaml` runs
+`oci://ghcr.io/krateo-blueprints/charts/rancher-installer:0.1.0`). `.github/workflows/lint.yaml` runs
 `helm lint` + `helm template` on every PR.
 
 ## Verified

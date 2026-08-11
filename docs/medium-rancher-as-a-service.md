@@ -1,3 +1,12 @@
+---
+type: Architecture
+title: Medium Rancher As A Service — krateo-rancher-blueprint
+description: krateo-rancher-blueprint — medium rancher as a service reference.
+resource: https://github.com/krateo-blueprints/krateo-rancher-blueprint
+tags: [architecture, krateo-blueprints]
+timestamp: 2026-08-11T00:00:00Z
+---
+
 # The schema is the contract: making Rancher self-service on Kubernetes
 
 *What forking a Helm chart taught me about what "self-service" actually requires*

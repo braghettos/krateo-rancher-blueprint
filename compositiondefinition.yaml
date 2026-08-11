@@ -11,7 +11,7 @@ spec:
     version: "0.1.0"
     # If the GHCR package is private, provide pull credentials:
     # credentials:
-    #   username: braghettos
+    #   username: krateo
     #   passwordRef:
     #     key: token
     #     name: ghcr-credentials

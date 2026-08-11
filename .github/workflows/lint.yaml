@@ -23,3 +23,6 @@ jobs:
 
       - name: Render (default values)
         run: helm template rancher ./chart --namespace cattle-system > /dev/null
+
+  lint-docs:
+    uses: krateo-platformops/.github/.github/workflows/lint-docs.yaml@main

@@ -1,0 +1,22 @@
+# krateo-rancher-blueprint — LLM doc index (pinned: 0.1.0)
+# One line per file; regenerate the pin on release. Read files at the tag that matches the
+# published chart: the chart version is CompositionDefinition.spec.chart.version, and it also
+# determines the generated Composition apiVersion (0.1.0 -> composition.krateo.io/v0-1-0).
+docs/index.md: the map — what the blueprint is + links to the whole bundle and the repo layout
+docs/overview.md: architecture — fork-not-wrapper, values.schema.json→CRD→Composition flow, the NodePort patch, rancher-installer naming, cert-manager as a hard prerequisite
+docs/usage.md: install core-provider + cert-manager, register the CompositionDefinition, create a RancherInstaller, reach the UI, the portal card path
+docs/configuration.md: the whole RancherInstaller Composition surface field by field, from chart/values.schema.json plus the chart defaults it draws on
+docs/api.md: the CompositionDefinition input, the generated RancherInstaller CRD, Kind/apiVersion derivation from Chart.yaml, the portal surface
+docs/examples.md: index of the runnable examples
+docs/release.md: how a tag ships the chart to GHCR, PR-time checks, and the re-fork runbook for a new upstream Rancher version
+docs/log.md: curated history
+examples/kind-nodeport/README.md: end-to-end install on kind — register the CD, create a NodePort RancherInstaller pinned to 30443, open https://localhost:30443
+quickstart.md: the pre-existing kind quickstart (same NodePort scenario)
+# Source (read at the same tag; the docs above are derived from these):
+chart/Chart.yaml: the forked chart metadata — name rancher-installer, appVersion v2.14.2, the fork rationale in comments
+chart/values.yaml: the upstream Rancher defaults the chart renders with
+chart/values.schema.json: the curated, crdgen-suitable schema — what core-provider turns into the RancherInstaller CRD
+chart/templates/service.yaml: the blueprint's NodePort patch (force httpNodePort/httpsNodePort)
+compositiondefinition.yaml: the registration — pulls the chart from GHCR, publishes RancherInstaller
+customform.yaml: the Composable Portal card + CustomForm that drives the install from the UI
+chart/CHART-README.md: the upstream Rancher chart README, preserved (all --set options)

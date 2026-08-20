@@ -8,7 +8,7 @@ spec:
     # OCI artifact published by .github/workflows/release-tag.yaml.
     # The chart name (rancher-installer) is appended to the OCI repository path.
     url: oci://ghcr.io/krateo-blueprints/charts/rancher-installer
-    version: "0.1.0"
+    version: "0.1.2"
     # If the GHCR package is private, provide pull credentials:
     # credentials:
     #   username: krateo

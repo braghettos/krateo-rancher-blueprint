@@ -11,7 +11,10 @@ on:
     tags: ["[0-9]+.[0-9]+.[0-9]+"]
 
 permissions:
-  contents: read
+  # contents: write — the stamped CompositionDefinition is attached to the release.
+  # It is applied by hand and is not inside the packaged chart, so it must ship as a
+  # release asset, not just live in the runner.
+  contents: write
   packages: write
 
 jobs:
@@ -32,6 +35,19 @@ jobs:
       - name: Stamp chart version
         run: sed -i "s/CHART_VERSION/${VERSION}/g" ./chart/Chart.yaml
 
+      - name: Stamp the CompositionDefinition
+        run: |
+          set -euo pipefail
+          # The CD pins the version of this chart and does not live next to Chart.yaml, so the
+          # chart stamp above never touched it. Left by hand it drifts: the chart advances with
+          # the tag while the CD keeps pointing at an older, and eventually unpublished, version.
+          # This repo publishes the chart on every tag, so stamping the CD to the same tag is
+          # always valid — the version it names is guaranteed to exist.
+          find . -type f -name compositiondefinition.yaml -not -path '*/charts/*' -print0 \
+            | while IFS= read -r -d '' cd; do
+                sed -i "s/CHART_VERSION/${VERSION}/g" "$cd"; echo "stamped $cd -> ${VERSION}"
+              done
+
       - name: Log in to GHCR
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | \
@@ -44,3 +60,23 @@ jobs:
         run: |
           helm push "rancher-installer-${VERSION}.tgz" "${OCI_REPO}"
           echo "Published ${OCI_REPO}/rancher-installer:${VERSION}"
+
+      - name: Publish the stamped CompositionDefinition on the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Runs after the chart is pushed: the chart is the primary artifact and an asset
+          # problem must never block it. Stage into a fresh dir so a root-level CD is never
+          # cp'd onto itself (an error, not a no-op — a lesson from selfservice 0.2.26).
+          stage="$(mktemp -d)"; assets=()
+          while IFS= read -r -d '' cd; do
+            d="$(dirname "$cd")"
+            if [ "$d" = "." ]; then out="compositiondefinition.yaml"; else out="compositiondefinition-$(basename "$d").yaml"; fi
+            cp "$cd" "$stage/$out"; assets+=("$stage/$out")
+          done < <(find . -type f -name compositiondefinition.yaml -not -path '*/charts/*' -print0)
+          [ ${#assets[@]} -eq 0 ] && { echo "no CompositionDefinition to publish"; exit 0; }
+          gh release view "${VERSION}" >/dev/null 2>&1 \
+            || gh release create "${VERSION}" --title "${VERSION}" --notes "Apply the attached CompositionDefinition to register this version."
+          gh release upload "${VERSION}" "${assets[@]}" --clobber
+          echo "attached: ${assets[*]}"
